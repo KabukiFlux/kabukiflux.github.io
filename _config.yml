@@ -14,26 +14,26 @@ lang: en
 
 
 # Change to your timezone › http://www.timezoneconverter.com/cgi-bin/findzone/findzone
-timezone:
+timezone: Europe/Madrid
 
 # jekyll-seo-tag settings › https://github.com/jekyll/jekyll-seo-tag/blob/master/docs/usage.md
 # ↓ --------------------------
 
-title: KabukiFlux
+title: Kabuki Flux
 
 tagline: Arcade and electronics maker blog
 
 description: >-                        # used by seo meta and the atom feed
-  A minimal, responsive, and powerful Jekyll theme for presenting professional writing.
+  Arcade and electronics blog - documentation repository
 
 # fill in the protocol & hostname for your site, e.g., 'https://username.github.io'
-url: ''
+url: 'https://kabukiflux.com'
 
 github:
-  username: kabukiflux             # change to your github username
+  username: kabukiflux
 
 twitter:
-  username: kabukiflux            # change to your twitter username
+  username: kabukiflux
 
 social:
   # Change to your full name.
@@ -48,17 +48,17 @@ social:
     - https://www.instagram.com/kabukiflux/
     # - https://www.linkedin.com/in/username
 
-google_site_verification:               # fill in to your verification string
+#google_site_verification:               # fill in to your verification string
 
 # ↑ --------------------------
 # The end of `jekyll-seo-tag` settings
 
-google_analytics:
-  id:                 # fill in your Google Analytics ID
-  # Google Analytics pageviews report settings
-  pv:
-    proxy_endpoint:   # fill in the Google Analytics superProxy endpoint of Google App Engine
-    cache_path:       # the local PV cache data, friendly to visitors from GFW region
+#google_analytics:
+#  id:                 # fill in your Google Analytics ID
+#  # Google Analytics pageviews report settings
+#  pv:
+#    proxy_endpoint:   # fill in the Google Analytics superProxy endpoint of Google App Engine
+#    cache_path:       # the local PV cache data, friendly to visitors from GFW region
 
 # Prefer color scheme setting.
 #

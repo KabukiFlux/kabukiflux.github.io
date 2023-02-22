@@ -1,0 +1,10 @@
+# Translate languages
+# langs refer to https://cloud.google.com/translate/docs/languages
+
+- lang: en
+  img: https://cdn.countryflags.com/thumbs/united-states-of-america/flag-400.png
+  text: English
+
+- lang: es
+  img: https://cdn.countryflags.com/thumbs/spain/flag-400.png
+  text: Español
