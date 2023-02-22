@@ -4,5 +4,6 @@ icon: fas fa-info-circle
 order: 4
 ---
 
-> Add Markdown syntax content to file `_tabs/about.md`{: .filepath } and it will show up on this page.
-{: .prompt-tip }
+> Maker blog dedicated to electronics, arcade machine repair (`CRT screens`) and retro games.
+
+On Twitch.tv we will do live retro and electronics.
