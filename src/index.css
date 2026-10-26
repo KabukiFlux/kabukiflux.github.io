@@ -1,0 +1,237 @@
+@import 'tailwindcss';
+
+/* Brand fonts: drop the files in public/fonts/ (see public/fonts/README.txt). Until then the fallbacks are used. */
+@font-face {
+  font-family: 'ADAM.CG PRO';
+  src:
+    local('ADAM.CG PRO'),
+    local('ADAMCG PRO'),
+    url('/fonts/ADAMCGPRO.woff2') format('woff2'),
+    url('/fonts/ADAMCGPRO.otf') format('opentype');
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Frontage Outline';
+  src:
+    local('Frontage-Outline'),
+    local('Frontage Outline'),
+    url('/fonts/Frontage-Outline.woff2') format('woff2'),
+    url('/fonts/Frontage-Outline.otf') format('opentype');
+  font-display: swap;
+}
+
+@theme {
+  --color-paper: #ffffff;
+  --color-mist: #f1f0ec;
+  --color-surface: #ffffff;
+  --color-line: #e3e1da;
+  --color-ink: #1c2227;
+  --color-muted: #5f6670;
+  --color-slate: #546a79;
+  --color-red: #d7261e;
+  --color-red-dark: #b81f18;
+  --color-gold: #ecd361;
+  --color-night: #38454f;
+
+  --font-display: 'ADAM.CG PRO', 'Montserrat', ui-sans-serif, system-ui, sans-serif;
+  --font-outline: 'Frontage Outline', 'ADAM.CG PRO', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+body {
+  @apply bg-paper font-sans text-ink antialiased;
+}
+
+::selection {
+  @apply bg-red text-white;
+}
+
+:focus-visible {
+  @apply outline-2 outline-offset-2 outline-red;
+}
+
+/* Square buttons with small, widely spaced caps: the editorial look of the page. */
+.btn {
+  @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-xs font-semibold tracking-[0.16em] uppercase transition-colors;
+}
+.btn-red {
+  @apply bg-red text-white hover:bg-red-dark;
+}
+.btn-ink {
+  @apply bg-ink text-white hover:bg-black;
+}
+.btn-outline {
+  @apply border border-ink bg-transparent text-ink hover:bg-ink hover:text-white;
+}
+.btn-light {
+  @apply bg-gold text-ink hover:bg-white;
+}
+
+.card {
+  @apply bg-surface;
+}
+
+/* Horizontal slider: native scrolling with snap points, no scrollbar. */
+.slider-track {
+  @apply flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth pb-2;
+  scrollbar-width: none;
+}
+.slider-track::-webkit-scrollbar {
+  display: none;
+}
+.slider-track > * {
+  @apply shrink-0 snap-start;
+}
+
+
+/* ---------- Motion: CRT / arcade attract mode ----------
+   Scroll-driven bits are progressive enhancement; without support (or with reduced motion) everything just shows. */
+
+/* Red scroll progress bar under the sticky header. */
+.scroll-progress {
+  @apply absolute inset-x-0 bottom-0 h-0.5 origin-left bg-red;
+  transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .scroll-progress {
+    animation: progress linear both;
+    animation-timeline: scroll(root);
+  }
+}
+@keyframes progress {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Sections rise and fade in as they enter the viewport. */
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation: reveal linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 45%;
+  }
+}
+@keyframes reveal {
+  from {
+    opacity: 0;
+    translate: 0 2.5rem;
+  }
+}
+
+/* The Twitch monitor: bezel and a power-on flash when it loads. Nothing is drawn over the picture itself. */
+.crt {
+  @apply relative overflow-hidden bg-black;
+  border-radius: 1.1rem / 1.4rem;
+  box-shadow:
+    0 0 0 0.5rem #1c2227,
+    0 0 0 0.6rem #546a79,
+    0 40px 80px -30px rgb(28 34 39 / 0.7);
+  animation: crt-on 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.crt-live {
+  box-shadow:
+    0 0 0 0.5rem #1c2227,
+    0 0 0 0.6rem #d7261e,
+    0 0 60px 6px rgb(215 38 30 / 0.45);
+}
+@keyframes crt-on {
+  0%,
+  45% {
+    transform: scale(1, 0.005);
+    filter: brightness(4);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+/* Logo: a single RGB-split glitch on load. */
+.glitch {
+  animation: glitch 0.9s steps(2, end) 0.6s 1 both;
+}
+@keyframes glitch {
+  0%,
+  100% {
+    filter: none;
+    translate: 0;
+  }
+  20% {
+    filter: drop-shadow(4px 0 0 rgb(215 38 30 / 0.8)) drop-shadow(-4px 0 0 rgb(84 106 121 / 0.8));
+    translate: -2px 0;
+  }
+  40% {
+    filter: drop-shadow(-6px 0 0 rgb(215 38 30 / 0.8)) drop-shadow(6px 0 0 rgb(236 211 97 / 0.8));
+    translate: 3px 0;
+  }
+  60% {
+    filter: drop-shadow(3px 0 0 rgb(215 38 30 / 0.6));
+    translate: -1px 0;
+  }
+}
+
+/* Slow drift on the hero photo. */
+.drift {
+  animation: drift 24s ease-in-out infinite alternate;
+}
+@keyframes drift {
+  from {
+    transform: scale(1.05) translate(0, 0);
+  }
+  to {
+    transform: scale(1.18) translate(-2%, -1.5%);
+  }
+}
+
+/* Project cards: a scanline sweep over the preview on hover. */
+.sweep::after {
+  content: '';
+  @apply pointer-events-none absolute inset-y-0 -left-1/2 w-1/3 -skew-x-12 bg-white/20 opacity-0;
+}
+.group:hover .sweep::after {
+  animation: sweep 0.8s ease-out;
+}
+@keyframes sweep {
+  0% {
+    left: -50%;
+    opacity: 1;
+  }
+  100% {
+    left: 130%;
+    opacity: 0;
+  }
+}
+
+/* Buttons fill from the left. */
+.btn {
+  @apply relative overflow-hidden;
+}
+.btn-outline {
+  background-image: linear-gradient(var(--color-red), var(--color-red));
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
+  transition:
+    background-size 0.35s ease,
+    color 0.2s,
+    border-color 0.35s;
+}
+.btn-outline:hover {
+  @apply border-red bg-transparent text-white;
+  background-size: 100% 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

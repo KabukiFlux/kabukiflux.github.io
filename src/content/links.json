@@ -1,0 +1,34 @@
+{
+  "youtube": {
+    "spanish": {
+      "url": "https://www.youtube.com/@kabukifluxinspanish",
+      "channelId": "UCw-RweuI2cjEOHUN9UPmpnw"
+    },
+    "english": {
+      "url": "https://www.youtube.com/c/KabukiFlux",
+      "channelId": "UC7nzFigwUXignEdYdiT37_g"
+    }
+  },
+  "twitch": {
+    "url": "https://www.twitch.tv/kabukiflux",
+    "login": "kabukiflux"
+  },
+  "github": {
+    "url": "https://github.com/KabukiFlux",
+    "user": "KabukiFlux",
+    "excludeRepos": [
+      "kabukiflux.github.io"
+    ]
+  },
+  "x": {
+    "url": "https://x.com/kabukiflux",
+    "handle": "kabukiflux"
+  },
+  "instagram": {
+    "url": "https://www.instagram.com/kabukiflux/",
+    "handle": "kabukiflux"
+  },
+  "kofi": {
+    "url": "https://ko-fi.com/kabukiflux"
+  }
+}
