@@ -3,11 +3,13 @@ import { useI18n } from '../i18n/I18nProvider.tsx'
 
 interface SliderProps {
   label: string
+  /** Two rows fill columns top to bottom; children then take their width from the track. */
+  rows?: 1 | 2
   children: ReactNode
 }
 
 /** Scroll-snap slider with previous/next buttons. Swipe, wheel and keyboard scrolling keep working natively. */
-export function Slider({ label, children }: SliderProps) {
+export function Slider({ label, rows = 1, children }: SliderProps) {
   const { t } = useI18n()
   const track = useRef<HTMLDivElement>(null)
   const [edge, setEdge] = useState({ start: true, end: false })
@@ -38,7 +40,7 @@ export function Slider({ label, children }: SliderProps) {
 
   return (
     <div role="group" aria-roledescription="carousel" aria-label={label}>
-      <div ref={track} onScroll={update} className="slider-track" tabIndex={0}>
+      <div ref={track} onScroll={update} className={`slider-track ${rows === 2 ? 'rows-2' : ''}`} tabIndex={0}>
         {children}
       </div>
       <div className="mt-6 flex justify-center gap-2">

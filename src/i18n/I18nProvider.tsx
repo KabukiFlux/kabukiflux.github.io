@@ -8,7 +8,9 @@ export type MessageKey = keyof typeof es
 const messages: Record<Lang, Record<MessageKey, string>> = { es, en }
 const STORAGE_KEY = 'kf-lang'
 
-function initialLang(): Lang {
+/** The visitor's language: saved choice first, then the browser's. The prerendered page is Spanish. */
+export function detectLang(): Lang {
+  if (typeof window === 'undefined') return 'es'
   try {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored === 'es' || stored === 'en') return stored
@@ -37,7 +39,7 @@ const RELATIVE_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['minute', 60],
 ]
 
-export function I18nProvider({ children }: { children: ReactNode }) {
+export function I18nProvider({ initialLang, children }: { initialLang: Lang; children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(initialLang)
 
   useEffect(() => {

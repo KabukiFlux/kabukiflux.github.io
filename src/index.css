@@ -1,22 +1,19 @@
 @import 'tailwindcss';
 
-/* Brand fonts: drop the files in public/fonts/ (see public/fonts/README.txt). Until then the fallbacks are used. */
+/* Self-hosted latin subsets (see public/fonts/README.txt). The brand fonts are used instead when installed locally. */
 @font-face {
-  font-family: 'ADAM.CG PRO';
+  font-family: 'KF Display';
   src:
     local('ADAM.CG PRO'),
     local('ADAMCG PRO'),
-    url('/fonts/ADAMCGPRO.woff2') format('woff2'),
-    url('/fonts/ADAMCGPRO.otf') format('opentype');
+    url('/fonts/syncopate-700-latin.woff2') format('woff2');
+  font-weight: 700;
   font-display: swap;
 }
 @font-face {
-  font-family: 'Frontage Outline';
-  src:
-    local('Frontage-Outline'),
-    local('Frontage Outline'),
-    url('/fonts/Frontage-Outline.woff2') format('woff2'),
-    url('/fonts/Frontage-Outline.otf') format('opentype');
+  font-family: 'KF Condensed';
+  src: url('/fonts/oswald-500-latin.woff2') format('woff2');
+  font-weight: 500;
   font-display: swap;
 }
 
@@ -32,9 +29,16 @@
   --color-red-dark: #b81f18;
   --color-gold: #ecd361;
   --color-night: #38454f;
+  --color-night-deep: #2a343c;
+  /* Component colors: the bands on a resistor, the LEDs on a board. Fills and decoration, not body text. */
+  --color-orange: #f08a24;
+  --color-green: #2f9e6e;
+  --color-cyan: #1fb5c9;
+  --color-violet: #7b5cd6;
+  --color-magenta: #d6336c;
 
-  --font-display: 'ADAM.CG PRO', 'Montserrat', ui-sans-serif, system-ui, sans-serif;
-  --font-outline: 'Frontage Outline', 'ADAM.CG PRO', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'KF Display', ui-sans-serif, system-ui, sans-serif;
+  --font-condensed: 'KF Condensed', 'Arial Narrow', ui-sans-serif, system-ui, sans-serif;
   --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
 }
 
@@ -57,7 +61,7 @@ body {
 
 /* Square buttons with small, widely spaced caps: the editorial look of the page. */
 .btn {
-  @apply inline-flex items-center justify-center gap-2 px-6 py-3 text-xs font-semibold tracking-[0.16em] uppercase transition-colors;
+  @apply relative inline-flex items-center justify-center gap-2 overflow-hidden px-6 py-3 text-xs font-semibold tracking-[0.16em] uppercase transition-colors;
 }
 .btn-red {
   @apply bg-red text-white hover:bg-red-dark;
@@ -65,15 +69,59 @@ body {
 .btn-ink {
   @apply bg-ink text-white hover:bg-black;
 }
-.btn-outline {
-  @apply border border-ink bg-transparent text-ink hover:bg-ink hover:text-white;
-}
 .btn-light {
   @apply bg-gold text-ink hover:bg-white;
 }
+/* Fills from the left on hover. */
+.btn-outline {
+  @apply border border-ink bg-transparent text-ink;
+  background-image: linear-gradient(var(--color-red), var(--color-red));
+  background-repeat: no-repeat;
+  background-size: 0% 100%;
+  transition:
+    background-size 0.35s ease,
+    color 0.2s,
+    border-color 0.35s;
+}
+.btn-outline:hover {
+  @apply border-red text-white;
+  background-size: 100% 100%;
+}
 
-.card {
-  @apply bg-surface;
+/* Decorative words above headings, drawn as a border only (a stand-in for Frontage Outline). */
+.outline-text {
+  @apply font-condensed tracking-[0.12em] uppercase;
+  /* the fill goes, the color stays for the stroke; without text-stroke support the word just shows filled */
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 1.5px currentColor;
+}
+@supports not (-webkit-text-stroke: 1px black) {
+  .outline-text {
+    -webkit-text-fill-color: currentColor;
+  }
+}
+
+/* Resistor color code: a thin multicolor strip used as a divider. */
+.bands {
+  @apply h-1.5;
+  background: linear-gradient(
+    90deg,
+    var(--color-red) 0 16.66%,
+    var(--color-orange) 0 33.33%,
+    var(--color-gold) 0 50%,
+    var(--color-green) 0 66.66%,
+    var(--color-cyan) 0 83.33%,
+    var(--color-violet) 0
+  );
+}
+
+/* Copper traces and vias on the dark band. */
+.pcb {
+  background-image:
+    radial-gradient(circle at 20px 20px, rgb(255 255 255 / 0.09) 3px, transparent 3.5px),
+    linear-gradient(90deg, transparent 19px, rgb(255 255 255 / 0.05) 19px 21px, transparent 21px),
+    linear-gradient(transparent 59px, rgb(255 255 255 / 0.05) 59px 61px, transparent 61px);
+  background-size: 80px 80px, 80px 80px, 160px 80px;
 }
 
 /* Horizontal slider: native scrolling with snap points, no scrollbar. */
@@ -87,14 +135,19 @@ body {
 .slider-track > * {
   @apply shrink-0 snap-start;
 }
-
+/* Two rows: cards flow top to bottom, then left to right. */
+.slider-track.rows-2 {
+  @apply grid grid-flow-col grid-rows-2 gap-y-8;
+  grid-auto-columns: min(78%, 18rem);
+}
 
 /* ---------- Motion: CRT / arcade attract mode ----------
    Scroll-driven bits are progressive enhancement; without support (or with reduced motion) everything just shows. */
 
-/* Red scroll progress bar under the sticky header. */
+/* RGB scroll progress bar under the sticky header. */
 .scroll-progress {
-  @apply absolute inset-x-0 bottom-0 h-0.5 origin-left bg-red;
+  @apply absolute inset-x-0 bottom-0 h-0.5 origin-left;
+  background: linear-gradient(90deg, var(--color-red), var(--color-gold), var(--color-green), var(--color-cyan), var(--color-violet));
   transform: scaleX(0);
 }
 @supports (animation-timeline: scroll()) {
@@ -124,20 +177,35 @@ body {
   }
 }
 
+/* LED: a steady glow, blinking when it marks something live. */
+.led {
+  @apply inline-block size-2.5 rounded-full;
+  background: currentColor;
+  box-shadow: 0 0 8px 1px currentColor;
+}
+.led-blink {
+  animation: blink 1.2s steps(2, jump-none) infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+
 /* The Twitch monitor: bezel and a power-on flash when it loads. Nothing is drawn over the picture itself. */
 .crt {
   @apply relative overflow-hidden bg-black;
   border-radius: 1.1rem / 1.4rem;
   box-shadow:
-    0 0 0 0.5rem #1c2227,
-    0 0 0 0.6rem #546a79,
+    0 0 0 0.5rem var(--color-ink),
+    0 0 0 0.6rem var(--color-slate),
     0 40px 80px -30px rgb(28 34 39 / 0.7);
   animation: crt-on 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 .crt-live {
   box-shadow:
-    0 0 0 0.5rem #1c2227,
-    0 0 0 0.6rem #d7261e,
+    0 0 0 0.5rem var(--color-ink),
+    0 0 0 0.6rem var(--color-red),
     0 0 60px 6px rgb(215 38 30 / 0.45);
 }
 @keyframes crt-on {
@@ -163,7 +231,7 @@ body {
     translate: 0;
   }
   20% {
-    filter: drop-shadow(4px 0 0 rgb(215 38 30 / 0.8)) drop-shadow(-4px 0 0 rgb(84 106 121 / 0.8));
+    filter: drop-shadow(4px 0 0 rgb(215 38 30 / 0.8)) drop-shadow(-4px 0 0 rgb(31 181 201 / 0.8));
     translate: -2px 0;
   }
   40% {
@@ -171,7 +239,7 @@ body {
     translate: 3px 0;
   }
   60% {
-    filter: drop-shadow(3px 0 0 rgb(215 38 30 / 0.6));
+    filter: drop-shadow(3px 0 0 rgb(47 158 110 / 0.7));
     translate: -1px 0;
   }
 }
@@ -189,7 +257,7 @@ body {
   }
 }
 
-/* Project cards: a scanline sweep over the preview on hover. */
+/* Cards: a scanline sweep over the image on hover. */
 .sweep::after {
   content: '';
   @apply pointer-events-none absolute inset-y-0 -left-1/2 w-1/3 -skew-x-12 bg-white/20 opacity-0;
@@ -206,24 +274,6 @@ body {
     left: 130%;
     opacity: 0;
   }
-}
-
-/* Buttons fill from the left. */
-.btn {
-  @apply relative overflow-hidden;
-}
-.btn-outline {
-  background-image: linear-gradient(var(--color-red), var(--color-red));
-  background-repeat: no-repeat;
-  background-size: 0% 100%;
-  transition:
-    background-size 0.35s ease,
-    color 0.2s,
-    border-color 0.35s;
-}
-.btn-outline:hover {
-  @apply border-red bg-transparent text-white;
-  background-size: 100% 100%;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -7,14 +7,25 @@ import { SocialFrame } from './components/SocialFrame.tsx'
 import { VideoPlayer } from './components/VideoPlayer.tsx'
 import { VideoSlider } from './components/VideoSlider.tsx'
 import { VideoCard } from './components/VideoCard.tsx'
+import { XTimeline } from './components/XTimeline.tsx'
 import links from './content/links.json'
 import { useFeed } from './hooks/useFeed.ts'
 import { useI18n } from './i18n/I18nProvider.tsx'
+import type { VideoSummary } from '../shared/feed.ts'
+
+const EMBED_HEIGHT = 680
+
+// fetch-data already drops these; this also covers an older feed kept when YouTube's RSS failed
+const excluded = new Set(links.youtube.excludeVideos)
+const visible = (videos: VideoSummary[] | undefined) => (videos ?? []).filter((v) => !excluded.has(v.id))
 
 export default function App() {
   const state = useFeed()
-  const { t, lang } = useI18n()
+  const { t } = useI18n()
   const feed = state.status === 'ready' ? state.feed : null
+  // the newest Spanish video already has the Latest section
+  const spanish = visible(feed?.youtubeVideos).filter((v) => v.id !== feed?.youtube?.id)
+  const english = visible(feed?.youtubeEnglishVideos)
 
   return (
     <>
@@ -28,7 +39,7 @@ export default function App() {
           </p>
         )}
 
-        <Section id="latest" tone="mist" eyebrow={t('latest.eyebrow')} title={t('latest.title')} subtitle={t('latest.subtitle')}>
+        <Section id="latest" tone="mist" accent="red" eyebrow={t('latest.eyebrow')} title={t('latest.title')} subtitle={t('latest.subtitle')}>
           <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
             {feed?.youtube ? <VideoCard video={feed.youtube} /> : <div className="hidden lg:block" />}
             <div className="lg:[&>div]:aspect-auto lg:[&>div]:h-full lg:[&>div]:min-h-72">
@@ -37,37 +48,28 @@ export default function App() {
           </div>
         </Section>
 
-        {feed && (feed.youtubeVideos?.length || feed.youtubeEnglishVideos?.length) ? (
-          <Section id="videos" tone="dark" eyebrow={t('videos.eyebrow')} title={t('videos.title')} subtitle={t('videos.subtitle')}>
-            {/* the newest Spanish video already has the hero and the Latest section */}
-            <VideoSlider title={t('videos.spanish')} channelUrl={links.youtube.spanish.url} videos={(feed.youtubeVideos ?? []).slice(1)} />
-            <VideoSlider title={t('videos.english')} channelUrl={links.youtube.english.url} videos={feed.youtubeEnglishVideos ?? []} />
+        {spanish.length || english.length ? (
+          <Section id="videos" tone="dark" accent="gold" eyebrow={t('videos.eyebrow')} title={t('videos.title')} subtitle={t('videos.subtitle')}>
+            <VideoSlider title={t('videos.spanish')} channelUrl={links.youtube.spanish.url} videos={spanish} rows={spanish.length > 4 ? 2 : 1} />
+            <VideoSlider title={t('videos.english')} channelUrl={links.youtube.english.url} videos={english} />
           </Section>
         ) : null}
 
-        {feed && feed.repos.length > 0 && (
-          <ProjectGrid repos={feed.repos} />
-        )}
+        {feed && feed.repos.length > 0 && <ProjectGrid repos={feed.repos} />}
 
-        <Section id="community" tone="mist" eyebrow={t('community.eyebrow')} title={t('community.title')} subtitle={t('community.subtitle')}>
-          <div className="grid gap-8">
+        <Section id="community" tone="mist" accent="violet" eyebrow={t('community.eyebrow')} title={t('community.title')} subtitle={t('community.subtitle')}>
+          <div className="grid gap-8 lg:grid-cols-2">
             <SocialFrame
               brand="instagram"
               title={t('instagram.title')}
               src={`https://www.instagram.com/${links.instagram.handle}/embed`}
               profileUrl={links.instagram.url}
               followLabel={t('instagram.follow')}
-              height={680}
+              height={EMBED_HEIGHT}
             />
-            <SocialFrame
-              brand="x"
-              title={t('x.title')}
-              src={`https://syndication.twitter.com/srv/timeline-profile/screen-name/${links.x.handle}?dnt=true&lang=${lang}&theme=light&showReplies=false`}
-              profileUrl={links.x.url}
-              followLabel={t('x.follow')}
-              height={680}
-              embed={feed ? feed.xEmbedOk !== false : state.status === 'error'}
-            />
+            <SocialFrame brand="x" title={t('x.title')} profileUrl={links.x.url} followLabel={t('x.follow')} height={EMBED_HEIGHT}>
+              {(inView) => <XTimeline load={inView} height={EMBED_HEIGHT} />}
+            </SocialFrame>
           </div>
         </Section>
       </main>

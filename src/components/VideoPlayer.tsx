@@ -31,7 +31,7 @@ export function VideoPlayer({ video }: { video: YouTubeVideo | null }) {
         />
       ) : (
         <button type="button" onClick={() => setPlaying(true)} aria-label={`${t('youtube.play')}: ${video.title}`} className="group absolute inset-0 block size-full">
-          {video.thumbnail && <img src={video.thumbnail} alt="" className="size-full object-cover" />}
+          {video.thumbnail && <img src={video.thumbnail} alt="" width={480} height={360} loading="lazy" decoding="async" className="size-full object-cover" />}
           <span className="absolute inset-0 bg-black/10 transition-colors group-hover:bg-black/0" />
           <span className="absolute inset-0 grid place-items-center">
             <span className="grid size-16 place-items-center bg-red text-white shadow-lg transition-colors group-hover:bg-red-dark sm:size-20">

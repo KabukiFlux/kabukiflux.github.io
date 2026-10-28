@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { useInView } from '../hooks/useInView.ts'
 import { useI18n } from '../i18n/I18nProvider.tsx'
 import { BrandIcon, type Brand } from './BrandIcon.tsx'
@@ -5,34 +6,34 @@ import { BrandIcon, type Brand } from './BrandIcon.tsx'
 interface SocialFrameProps {
   brand: Brand
   title: string
-  /** Embeddable page of the network (loaded only when the block nears the viewport). */
-  src: string
   profileUrl: string
   followLabel: string
   height: number
-  /** False hides the iframe and its note, leaving only the title and the follow button. */
-  embed?: boolean
+  /** Embeddable page of the network, as a plain iframe. */
+  src?: string
+  /** Custom embed instead of `src`; it receives whether the block is near the viewport. */
+  children?: (inView: boolean) => ReactNode
 }
 
-/** Full-width iframe of a network's public embed, with a link to the profile in case the embed is blocked. */
-export function SocialFrame({ brand, title, src, profileUrl, followLabel, height, embed = true }: SocialFrameProps) {
+/** A network's public embed, loaded only near the viewport, with a link to the profile in case the embed is blocked. */
+export function SocialFrame({ brand, title, profileUrl, followLabel, height, src, children }: SocialFrameProps) {
   const { t } = useI18n()
   const [ref, inView] = useInView<HTMLDivElement>()
 
   return (
-    <div ref={ref} className="bg-paper">
+    <div ref={ref} className="flex flex-col bg-paper">
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-        <h3 className="flex items-center gap-3 font-display text-lg tracking-wide">
+        <h3 className="flex items-center gap-3 text-lg font-bold">
           <BrandIcon brand={brand} className="size-5" /> {title}
         </h3>
         <a className="btn btn-outline" href={profileUrl} target="_blank" rel="noopener noreferrer">
           {followLabel}
         </a>
       </div>
-      {embed && (
-        <>
-          <div style={{ height }} className="border-t border-line bg-mist/50">
-            {inView && (
+      <div style={{ height }} className="overflow-y-auto border-t border-line bg-mist/50">
+        {children
+          ? children(inView)
+          : inView && (
               <iframe
                 src={src}
                 title={title}
@@ -42,10 +43,8 @@ export function SocialFrame({ brand, title, src, profileUrl, followLabel, height
                 className="size-full border-0"
               />
             )}
-          </div>
-          <p className="px-5 py-3 text-xs text-muted">{t('community.note')}</p>
-        </>
-      )}
+      </div>
+      <p className="px-5 py-3 text-xs text-muted">{t('community.note')}</p>
     </div>
   )
 }

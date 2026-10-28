@@ -2,17 +2,19 @@
 // Runs in GitHub Actions on a schedule; GITHUB_TOKEN comes from the environment.
 // Each source is independent: if one fails, its last published value is kept.
 
+import { createHash } from 'node:crypto'
 import { appendFile, mkdir, writeFile } from 'node:fs/promises'
 import { isDeepStrictEqual } from 'node:util'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { XMLParser } from 'fast-xml-parser'
+import sharp from 'sharp'
 import links from '../src/content/links.json' with { type: 'json' }
 import type { Feed, Repo, VideoSummary, YouTubeVideo } from '../shared/feed.ts'
 
 const OUT_FILE = resolve(dirname(fileURLToPath(import.meta.url)), '../public/data/feed.json')
 const OG_DIR = resolve(dirname(OUT_FILE), 'og')
-const SITE_URL = 'https://kabukiflux.com'
+const SITE_URL = links.site.url
 const PREVIOUS_FEED_URL = process.env.PREVIOUS_FEED_URL ?? 'https://kabukiflux.com/data/feed.json'
 const USER_AGENT = 'kabukiflux.com feed builder'
 
@@ -40,7 +42,8 @@ async function fetchYouTube(channelId: string): Promise<{ latest: YouTubeVideo |
   if (!res.ok) throw new Error(`${res.status} ${res.statusText} for ${url}`)
   const xml = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '', parseTagValue: false }).parse(await res.text())
   const raw = xml.feed?.entry
-  const entries: YouTubeEntry[] = Array.isArray(raw) ? raw : raw ? [raw] : []
+  const excluded = new Set(links.youtube.excludeVideos)
+  const entries = (Array.isArray(raw) ? raw : raw ? [raw] : []).filter((e: YouTubeEntry) => !excluded.has(e['yt:videoId'])) as YouTubeEntry[]
   const videos = entries.map((entry) => {
     const id = entry['yt:videoId']
     const views = Number(entry['media:group']?.['media:community']?.['media:statistics']?.views)
@@ -101,43 +104,38 @@ async function fetchRepos(user: string, exclude: string[]): Promise<Repo[]> {
 
 // ---------- Repo social previews ----------
 
+/** The repo page's og:image: the custom social preview when the repo has one, GitHub's generated card otherwise. */
+async function repoPreviewUrl(user: string, name: string): Promise<string> {
+  const res = await fetch(`https://github.com/${user}/${name}`, { headers: { 'User-Agent': USER_AGENT } })
+  if (!res.ok) throw new Error(`${res.status} for ${name}`)
+  const match = (await res.text()).match(/<meta property="og:image" content="([^"]+)"/)
+  return match ? match[1].replace(/&amp;/g, '&') : `https://opengraph.githubassets.com/${Date.now()}/${user}/${name}`
+}
+
 /**
- * GitHub's generated preview is rate-limited for visitors' browsers, so mirror it into the site.
- * If the download fails, reuse the copy from the live site so the card keeps its image.
+ * Mirrors the repo's social preview into the site as a small WebP (the originals are ~1 MB PNGs and
+ * GitHub's image hosts rate-limit visitors). The file name carries a content hash, so browsers can cache
+ * it across deploys. If the download fails, reuse the copy on the live site.
  */
-async function mirrorRepoImage(user: string, name: string): Promise<string | null> {
-  const rel = `data/og/${name}.png`
-  const sources = [`https://opengraph.githubassets.com/${Date.now()}/${user}/${name}`, `${SITE_URL}/${rel}`]
-  for (const url of sources) {
+async function mirrorRepoImage(user: string, name: string, previous: string | null | undefined): Promise<string | null> {
+  const sources = [() => repoPreviewUrl(user, name), ...(previous ? [async () => `${SITE_URL}/${previous}`] : [])]
+  for (const source of sources) {
     try {
-      const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } })
+      const res = await fetch(await source(), { headers: { 'User-Agent': USER_AGENT } })
       if (!res.ok || !res.headers.get('content-type')?.startsWith('image/')) continue
+      const image = await sharp(Buffer.from(await res.arrayBuffer()))
+        .resize(640, 320, { fit: 'cover' })
+        .webp({ quality: 70 })
+        .toBuffer()
+      const rel = `data/og/${name}-${createHash('sha256').update(image).digest('hex').slice(0, 8)}.webp`
       await mkdir(OG_DIR, { recursive: true })
-      await writeFile(resolve(OG_DIR, `${name}.png`), Buffer.from(await res.arrayBuffer()))
+      await writeFile(resolve(OG_DIR, rel.slice('data/og/'.length)), image)
       return rel
     } catch {
       // try the next source
     }
   }
   return null
-}
-
-// ---------- X timeline embed health ----------
-
-/** The timeline iframe can't be inspected from the browser (no CORS), so check here whether X serves it right now. */
-async function checkXEmbed(handle: string): Promise<boolean> {
-  const url = `https://syndication.twitter.com/srv/timeline-profile/screen-name/${handle}?dnt=true`
-  for (let tryNo = 0; tryNo < 3; tryNo++) {
-    if (tryNo > 0) await new Promise((r) => setTimeout(r, 3000))
-    try {
-      const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } })
-      const body = await res.text()
-      if (res.ok && body.length > 2000 && !/rate limit exceeded/i.test(body)) return true
-    } catch {
-      // network error: try again
-    }
-  }
-  return false
 }
 
 // ---------- main ----------
@@ -165,14 +163,14 @@ async function main() {
     }
   }
 
-  const [spanish, english, repos, xEmbedOk] = await Promise.all([
+  const previousImages = new Map((previous.repos ?? []).map((r) => [r.name, r.image]))
+  const [spanish, english, repos] = await Promise.all([
     attempt('youtube', () => fetchYouTube(links.youtube.spanish.channelId), { latest: previous.youtube ?? null, videos: previous.youtubeVideos ?? [] }),
     attempt('youtubeEnglish', () => fetchYouTube(links.youtube.english.channelId), { latest: previous.youtubeEnglish ?? null, videos: previous.youtubeEnglishVideos ?? [] }),
     attempt('repos', async () => {
       const list = await fetchRepos(links.github.user, links.github.excludeRepos)
-      return Promise.all(list.map(async (repo) => ({ ...repo, image: await mirrorRepoImage(links.github.user, repo.name) })))
+      return Promise.all(list.map(async (repo) => ({ ...repo, image: await mirrorRepoImage(links.github.user, repo.name, previousImages.get(repo.name)) })))
     }, previous.repos ?? []),
-    checkXEmbed(links.x.handle),
   ])
 
   const feed: Feed = {
@@ -182,7 +180,6 @@ async function main() {
     youtubeVideos: spanish.videos,
     youtubeEnglishVideos: english.videos,
     repos,
-    xEmbedOk,
   }
   await mkdir(dirname(OUT_FILE), { recursive: true })
   await writeFile(OUT_FILE, JSON.stringify(feed, null, 2) + '\n')

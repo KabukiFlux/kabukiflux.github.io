@@ -7,7 +7,10 @@
     "english": {
       "url": "https://www.youtube.com/c/KabukiFlux",
       "channelId": "UC7nzFigwUXignEdYdiT37_g"
-    }
+    },
+    "excludeVideos": [
+      "0i-5cPap3CE"
+    ]
   },
   "twitch": {
     "url": "https://www.twitch.tv/kabukiflux",
@@ -30,5 +33,9 @@
   },
   "kofi": {
     "url": "https://ko-fi.com/kabukiflux"
+  },
+  "site": {
+    "url": "https://kabukiflux.com",
+    "name": "KabukiFlux"
   }
 }

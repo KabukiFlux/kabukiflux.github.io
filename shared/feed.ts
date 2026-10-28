@@ -1,14 +1,5 @@
 // Shape of public/data/feed.json, shared by scripts/fetch-data.ts and the React app.
 
-export interface YouTubeVideo {
-  id: string
-  title: string
-  url: string
-  published: string
-  description: string
-  thumbnail: string
-}
-
 /** Light version of a video for the sliders (no description). */
 export interface VideoSummary {
   id: string
@@ -17,6 +8,10 @@ export interface VideoSummary {
   published: string
   thumbnail: string
   views: number | null
+}
+
+export interface YouTubeVideo extends VideoSummary {
+  description: string
 }
 
 export interface Repo {
@@ -28,7 +23,7 @@ export interface Repo {
   stars: number
   topics: string[]
   pushedAt: string
-  /** Site-relative path of the repo's social preview, mirrored at build time; null when it couldn't be fetched. */
+  /** Site-relative path of the repo's social preview (a small WebP named after its content), mirrored at build time; null when it couldn't be fetched. */
   image?: string | null
 }
 
@@ -40,6 +35,4 @@ export interface Feed {
   youtubeVideos?: VideoSummary[]
   youtubeEnglishVideos?: VideoSummary[]
   repos: Repo[]
-  /** False when X's timeline embed was rate-limited or unavailable at build time; the page then shows only the follow button. */
-  xEmbedOk?: boolean
 }

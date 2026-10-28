@@ -14,10 +14,13 @@ export function VideoCard({ video }: { video: YouTubeVideo }) {
 
   return (
     <article className="card flex h-full flex-col p-0 sm:p-4">
-      <p className="text-[11px] font-semibold tracking-[0.18em] text-red uppercase">
-        {t('youtube.title')} · <time dateTime={video.published}>{formatDate(video.published)}</time>
+      <p className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.18em] text-red uppercase">
+        <span aria-hidden="true" className="led text-red" />
+        <span>
+          {t('youtube.title')} · <time dateTime={video.published} suppressHydrationWarning>{formatDate(video.published)}</time>
+        </span>
       </p>
-      <h3 className="mt-2 font-display text-2xl leading-snug tracking-wide text-balance">{video.title}</h3>
+      <h3 className="mt-2 text-2xl leading-snug font-bold text-balance sm:text-3xl">{video.title}</h3>
       {video.description && (
         <>
           <RichText

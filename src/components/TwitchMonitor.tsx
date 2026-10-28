@@ -22,6 +22,13 @@ declare global {
 
 type LiveState = 'checking' | 'live' | 'offline'
 
+function afterLoadIdle(cb: () => void) {
+  // Safari has no requestIdleCallback
+  const idle = () => (typeof window.requestIdleCallback === 'function' ? window.requestIdleCallback(cb, { timeout: 3000 }) : setTimeout(cb, 1500))
+  if (document.readyState === 'complete') idle()
+  else window.addEventListener('load', idle, { once: true })
+}
+
 /** How long to wait for the player to report ONLINE/OFFLINE before assuming off air. */
 const CHECK_TIMEOUT_MS = 8000
 
@@ -34,46 +41,50 @@ export function TwitchMonitor() {
   const [ref, inView] = useInView<HTMLDivElement>()
   const playerEl = useRef<HTMLDivElement>(null)
   const [live, setLive] = useState<LiveState>('checking')
-  const parent = window.location.hostname
 
   useEffect(() => {
     if (!inView || !playerEl.current) return
     const el = playerEl.current
     let cancelled = false
-    const timeout = window.setTimeout(() => setLive((s) => (s === 'checking' ? 'offline' : s)), CHECK_TIMEOUT_MS)
+    let timeout = 0
 
-    loadScript('https://player.twitch.tv/js/embed/v1.js')
-      .then(() => {
-        if (cancelled || !window.Twitch) return
-        el.replaceChildren()
-        const player = new window.Twitch.Player(el, {
-          channel: links.twitch.login,
-          parent: [parent],
-          width: '100%',
-          height: '100%',
-          autoplay: false,
-          muted: true,
+    // The player weighs ~1 MB: start it once the page has loaded and gone idle, so it doesn't compete with the content.
+    afterLoadIdle(() => {
+      if (cancelled) return
+      timeout = window.setTimeout(() => setLive((s) => (s === 'checking' ? 'offline' : s)), CHECK_TIMEOUT_MS)
+      loadScript('https://player.twitch.tv/js/embed/v1.js')
+        .then(() => {
+          if (cancelled || !window.Twitch) return
+          el.replaceChildren()
+          const player = new window.Twitch.Player(el, {
+            channel: links.twitch.login,
+            parent: [window.location.hostname],
+            width: '100%',
+            height: '100%',
+            autoplay: false,
+            muted: true,
+          })
+          player.addEventListener(window.Twitch.Player.ONLINE, () => !cancelled && setLive('live'))
+          player.addEventListener(window.Twitch.Player.OFFLINE, () => !cancelled && setLive('offline'))
         })
-        player.addEventListener(window.Twitch.Player.ONLINE, () => !cancelled && setLive('live'))
-        player.addEventListener(window.Twitch.Player.OFFLINE, () => !cancelled && setLive('offline'))
-      })
-      .catch(() => !cancelled && setLive('offline'))
+        .catch(() => !cancelled && setLive('offline'))
+    })
 
     return () => {
       cancelled = true
       window.clearTimeout(timeout)
       el.replaceChildren()
     }
-  }, [inView, parent])
+  }, [inView])
 
   const isLive = live === 'live'
 
   return (
     <section ref={ref} className="flex h-full flex-col p-2 sm:p-4">
       <header className="flex flex-wrap items-center justify-between gap-3 pb-4">
-        <h3 className="font-display text-xl tracking-wide">{isLive ? t('twitch.live') : t('twitch.channel')}</h3>
+        <h3 className="font-display text-lg tracking-wide uppercase">{isLive ? t('twitch.live') : t('twitch.channel')}</h3>
         <span className="flex items-center gap-2 text-sm font-semibold text-muted">
-          <span aria-hidden="true" className={`size-3 rounded-full ${isLive ? 'animate-pulse bg-red' : 'bg-line'}`} />
+          <span aria-hidden="true" className={`led ${isLive ? 'led-blink text-red' : live === 'checking' ? 'text-gold' : 'text-slate/50'}`} />
           {live === 'checking' ? t('twitch.checking') : isLive ? t('twitch.onAir') : t('twitch.offAir')}
         </span>
       </header>

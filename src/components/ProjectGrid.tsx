@@ -8,6 +8,23 @@ import { Section } from './Section.tsx'
 
 const INITIAL_COUNT = 9
 
+/** Language chip colors, loosely after GitHub's: one LED color per family. */
+const LANGUAGE_COLORS: Record<string, string> = {
+  'KiCad Layout': 'bg-green text-white',
+  'KiCad Schematic': 'bg-cyan text-ink',
+  C: 'bg-slate text-white',
+  'C++': 'bg-magenta text-white',
+  Python: 'bg-gold text-ink',
+  JavaScript: 'bg-gold text-ink',
+  TypeScript: 'bg-cyan text-ink',
+  Verilog: 'bg-green text-white',
+  SystemVerilog: 'bg-green text-white',
+  VHDL: 'bg-green text-white',
+  PowerShell: 'bg-violet text-white',
+  'C#': 'bg-violet text-white',
+  HTML: 'bg-orange text-ink',
+}
+
 export function ProjectGrid({ repos }: { repos: Repo[] }) {
   const { t, formatRelative } = useI18n()
   const [expanded, setExpanded] = useState(false)
@@ -17,6 +34,7 @@ export function ProjectGrid({ repos }: { repos: Repo[] }) {
   return (
     <Section
       id="projects"
+      accent="green"
       eyebrow={t('projects.eyebrow')}
       title={t('projects.title')}
       subtitle={t('projects.subtitle')}
@@ -36,7 +54,7 @@ export function ProjectGrid({ repos }: { repos: Repo[] }) {
       <ul className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
         {visible.map((repo) => (
           <li key={repo.name}>
-            <article className="group flex h-full flex-col">
+            <article className="group flex h-full flex-col border border-line bg-paper transition-colors hover:border-green">
               <a
                 href={repo.url}
                 target="_blank"
@@ -47,16 +65,16 @@ export function ProjectGrid({ repos }: { repos: Repo[] }) {
                 <RepoImage src={repo.image} />
                 <span aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-night/90 via-night/20 to-transparent" />
                 {repo.language && (
-                  <span className="absolute top-3 left-3 bg-gold px-2 py-0.5 text-[10px] font-semibold tracking-[0.14em] text-ink uppercase">
+                  <span className={`absolute top-3 left-3 px-2 py-0.5 text-[10px] font-semibold tracking-[0.14em] uppercase ${LANGUAGE_COLORS[repo.language] ?? 'bg-orange text-ink'}`}>
                     {repo.language}
                   </span>
                 )}
-                <span className="absolute inset-x-4 bottom-3 font-display text-lg leading-tight tracking-wide break-words text-white">{repo.name}</span>
+                <span className="absolute inset-x-4 bottom-3 text-lg leading-tight font-bold break-words text-white">{repo.name}</span>
               </a>
-              <div className="flex flex-1 flex-col pt-4">
+              <div className="flex flex-1 flex-col p-4">
                 <p className="line-clamp-3 text-muted">{repo.description || t('projects.noDescription')}</p>
                 <p className="mt-auto pt-4 text-xs text-muted">
-                  ★ {repo.stars} · {t('projects.updated')} <time dateTime={repo.pushedAt}>{formatRelative(repo.pushedAt)}</time>
+                  ★ {repo.stars} · {t('projects.updated')} <time dateTime={repo.pushedAt} suppressHydrationWarning>{formatRelative(repo.pushedAt)}</time>
                   {repo.homepage && (
                     <>
                       {' · '}

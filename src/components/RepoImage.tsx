@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { BrandIcon } from './BrandIcon.tsx'
 
-/** The repo's social preview, mirrored into the site by fetch-data. A plain tile replaces it if it's missing or fails. */
+/** The repo's social preview, mirrored into the site by fetch-data (content-hashed name, so no cache busting). A plain tile replaces it if it's missing or fails. */
 export function RepoImage({ src }: { src?: string | null }) {
   const [failed, setFailed] = useState(false)
   if (failed || !src) {
@@ -13,11 +13,12 @@ export function RepoImage({ src }: { src?: string | null }) {
   }
   return (
     <img
-      src={`/${src}?v=${__BUILD_TIME__}`}
+      src={`/${src}`}
       alt=""
-      width={1200}
-      height={600}
+      width={640}
+      height={320}
       loading="lazy"
+      decoding="async"
       onError={() => setFailed(true)}
       className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-105"
     />
