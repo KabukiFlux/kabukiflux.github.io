@@ -74,6 +74,7 @@ export function jsonLd(feed: Feed | null) {
         links.github.url,
         links.x.url,
         links.instagram.url,
+        links.bluesky.url,
         links.kofi.url,
       ],
     },

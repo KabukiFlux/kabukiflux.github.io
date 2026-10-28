@@ -1,4 +1,4 @@
-// Fetches the latest content from YouTube and GitHub and writes public/data/feed.json.
+// Fetches the latest content from YouTube, GitHub and Bluesky and writes public/data/feed.json.
 // Runs in GitHub Actions on a schedule; GITHUB_TOKEN comes from the environment.
 // Each source is independent: if one fails, its last published value is kept.
 
@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url'
 import { XMLParser } from 'fast-xml-parser'
 import sharp from 'sharp'
 import links from '../src/content/links.json' with { type: 'json' }
-import type { Feed, Repo, VideoSummary, YouTubeVideo } from '../shared/feed.ts'
+import type { BlueskyPost, Feed, Repo, VideoSummary, YouTubeVideo } from '../shared/feed.ts'
 
 const OUT_FILE = resolve(dirname(fileURLToPath(import.meta.url)), '../public/data/feed.json')
 const OG_DIR = resolve(dirname(OUT_FILE), 'og')
@@ -138,6 +138,84 @@ async function mirrorRepoImage(user: string, name: string, previous: string | nu
   return null
 }
 
+// ---------- Bluesky (public AppView API, no key needed) ----------
+
+const BLUESKY_POSTS = 10
+
+interface BlueskyImage {
+  thumb: string
+  alt: string
+}
+interface BlueskyEmbed {
+  $type: string
+  images?: BlueskyImage[]
+  external?: { uri: string; title: string; thumb?: string }
+  media?: BlueskyEmbed
+}
+interface BlueskyFacet {
+  index: { byteStart: number; byteEnd: number }
+  features: { $type: string; uri?: string; did?: string; tag?: string }[]
+}
+interface BlueskyFeedItem {
+  reason?: unknown
+  post: {
+    uri: string
+    author: { did: string }
+    record: { text: string; createdAt: string; facets?: BlueskyFacet[] }
+    embed?: BlueskyEmbed
+    likeCount?: number
+    repostCount?: number
+    replyCount?: number
+  }
+}
+
+function facetHref(feature: BlueskyFacet['features'][number]): string | undefined {
+  if (feature.uri) return feature.uri
+  if (feature.did) return `https://bsky.app/profile/${feature.did}`
+  if (feature.tag) return `https://bsky.app/hashtag/${encodeURIComponent(feature.tag)}`
+}
+
+/** Splits the text at its facets. Bluesky shortens long URLs in the text and keeps the full one in the facet. */
+function splitFacets(text: string, facets: BlueskyFacet[] = []): BlueskyPost['text'] {
+  // facet offsets count UTF-8 bytes, not UTF-16 characters
+  const bytes = Buffer.from(text)
+  const parts: BlueskyPost['text'] = []
+  let pos = 0
+  for (const { index, features } of [...facets].sort((a, b) => a.index.byteStart - b.index.byteStart)) {
+    const href = features.map(facetHref).find(Boolean)
+    if (!href || index.byteStart < pos || index.byteEnd > bytes.length) continue
+    if (index.byteStart > pos) parts.push({ text: bytes.subarray(pos, index.byteStart).toString() })
+    parts.push({ text: bytes.subarray(index.byteStart, index.byteEnd).toString(), href })
+    pos = index.byteEnd
+  }
+  if (pos < bytes.length) parts.push({ text: bytes.subarray(pos).toString() })
+  return parts
+}
+
+async function fetchBluesky(handle: string): Promise<BlueskyPost[]> {
+  const params = new URLSearchParams({ actor: handle, filter: 'posts_no_replies', limit: '30' })
+  const { feed } = await getJson<{ feed: BlueskyFeedItem[] }>(`${links.bluesky.api}app.bsky.feed.getAuthorFeed?${params}`)
+  return feed
+    .filter((item) => !item.reason)
+    .slice(0, BLUESKY_POSTS)
+    .map(({ post }) => {
+      // record-with-media embeds keep the images or link card one level down
+      const embed = post.embed?.media ?? post.embed
+      const image = embed?.images?.[0]
+      const external = embed?.external
+      return {
+        url: `${links.bluesky.url}/post/${post.uri.split('/').pop()}`,
+        text: splitFacets(post.record.text, post.record.facets),
+        createdAt: post.record.createdAt,
+        image: image ? { src: image.thumb, alt: image.alt } : external?.thumb ? { src: external.thumb, alt: '' } : null,
+        link: external ? { url: external.uri, title: external.title } : null,
+        likes: post.likeCount ?? 0,
+        reposts: post.repostCount ?? 0,
+        replies: post.replyCount ?? 0,
+      }
+    })
+}
+
 // ---------- main ----------
 
 async function loadPreviousFeed(): Promise<Partial<Feed>> {
@@ -164,13 +242,14 @@ async function main() {
   }
 
   const previousImages = new Map((previous.repos ?? []).map((r) => [r.name, r.image]))
-  const [spanish, english, repos] = await Promise.all([
+  const [spanish, english, repos, bluesky] = await Promise.all([
     attempt('youtube', () => fetchYouTube(links.youtube.spanish.channelId), { latest: previous.youtube ?? null, videos: previous.youtubeVideos ?? [] }),
     attempt('youtubeEnglish', () => fetchYouTube(links.youtube.english.channelId), { latest: previous.youtubeEnglish ?? null, videos: previous.youtubeEnglishVideos ?? [] }),
     attempt('repos', async () => {
       const list = await fetchRepos(links.github.user, links.github.excludeRepos)
       return Promise.all(list.map(async (repo) => ({ ...repo, image: await mirrorRepoImage(links.github.user, repo.name, previousImages.get(repo.name)) })))
     }, previous.repos ?? []),
+    attempt('bluesky', () => fetchBluesky(links.bluesky.handle), previous.bluesky ?? []),
   ])
 
   const feed: Feed = {
@@ -180,6 +259,7 @@ async function main() {
     youtubeVideos: spanish.videos,
     youtubeEnglishVideos: english.videos,
     repos,
+    bluesky,
   }
   await mkdir(dirname(OUT_FILE), { recursive: true })
   await writeFile(OUT_FILE, JSON.stringify(feed, null, 2) + '\n')

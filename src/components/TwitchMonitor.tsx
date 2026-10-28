@@ -1,96 +1,75 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import links from '../content/links.json'
-import { loadScript } from '../hooks/loadScript.ts'
 import { useInView } from '../hooks/useInView.ts'
 import { useI18n } from '../i18n/I18nProvider.tsx'
 import { BrandIcon } from './BrandIcon.tsx'
 
-// Minimal typing for https://player.twitch.tv/js/embed/v1.js
-interface TwitchPlayer {
-  addEventListener(event: string, cb: () => void): void
-}
-declare global {
-  interface Window {
-    Twitch?: {
-      Player: (new (el: HTMLElement | string, options: Record<string, unknown>) => TwitchPlayer) & {
-        ONLINE: string
-        OFFLINE: string
-      }
-    }
-  }
-}
-
 type LiveState = 'checking' | 'live' | 'offline'
 
-function afterLoadIdle(cb: () => void) {
-  // Safari has no requestIdleCallback
-  const idle = () => (typeof window.requestIdleCallback === 'function' ? window.requestIdleCallback(cb, { timeout: 3000 }) : setTimeout(cb, 1500))
-  if (document.readyState === 'complete') idle()
-  else window.addEventListener('load', idle, { once: true })
+/**
+ * Twitch's preview image answers 200 while the channel is live and redirects to a "404_preview"
+ * placeholder otherwise. It's served with CORS, so a ~40 KB request replaces the ~1 MB player.
+ */
+async function isLive(): Promise<boolean> {
+  const res = await fetch(links.twitch.preview, { cache: 'no-cache' })
+  return res.ok && !res.redirected && !res.url.includes('404_preview')
 }
-
-/** How long to wait for the player to report ONLINE/OFFLINE before assuming off air. */
-const CHECK_TIMEOUT_MS = 8000
 
 /**
  * Twitch channel player (live stream, or Twitch's offline screen). The lamp shows the on-air state.
+ * The player itself only loads on click: it costs seconds of main-thread time and sets third-party cookies.
  * Past broadcasts are not shown on purpose: they are subscriber-only.
  */
 export function TwitchMonitor() {
   const { t } = useI18n()
-  const [ref, inView] = useInView<HTMLDivElement>()
-  const playerEl = useRef<HTMLDivElement>(null)
+  const [ref, inView] = useInView<HTMLElement>()
   const [live, setLive] = useState<LiveState>('checking')
+  const [playing, setPlaying] = useState(false)
 
   useEffect(() => {
-    if (!inView || !playerEl.current) return
-    const el = playerEl.current
+    if (!inView) return
     let cancelled = false
-    let timeout = 0
-
-    // The player weighs ~1 MB: start it once the page has loaded and gone idle, so it doesn't compete with the content.
-    afterLoadIdle(() => {
-      if (cancelled) return
-      timeout = window.setTimeout(() => setLive((s) => (s === 'checking' ? 'offline' : s)), CHECK_TIMEOUT_MS)
-      loadScript('https://player.twitch.tv/js/embed/v1.js')
-        .then(() => {
-          if (cancelled || !window.Twitch) return
-          el.replaceChildren()
-          const player = new window.Twitch.Player(el, {
-            channel: links.twitch.login,
-            parent: [window.location.hostname],
-            width: '100%',
-            height: '100%',
-            autoplay: false,
-            muted: true,
-          })
-          player.addEventListener(window.Twitch.Player.ONLINE, () => !cancelled && setLive('live'))
-          player.addEventListener(window.Twitch.Player.OFFLINE, () => !cancelled && setLive('offline'))
-        })
-        .catch(() => !cancelled && setLive('offline'))
-    })
-
+    isLive()
+      .then((on) => !cancelled && setLive(on ? 'live' : 'offline'))
+      .catch(() => !cancelled && setLive('offline'))
     return () => {
       cancelled = true
-      window.clearTimeout(timeout)
-      el.replaceChildren()
     }
   }, [inView])
 
-  const isLive = live === 'live'
+  const on = live === 'live'
+  const playerSrc = () =>
+    `${links.twitch.player}?${new URLSearchParams({ channel: links.twitch.login, parent: window.location.hostname, autoplay: 'true', muted: 'false' })}`
 
   return (
     <section ref={ref} className="flex h-full flex-col p-2 sm:p-4">
       <header className="flex flex-wrap items-center justify-between gap-3 pb-4">
-        <h3 className="font-display text-lg tracking-wide uppercase">{isLive ? t('twitch.live') : t('twitch.channel')}</h3>
+        <h2 className="font-display text-lg tracking-wide uppercase">{on ? t('twitch.live') : t('twitch.channel')}</h2>
         <span className="flex items-center gap-2 text-sm font-semibold text-muted">
-          <span aria-hidden="true" className={`led ${isLive ? 'led-blink text-red' : live === 'checking' ? 'text-gold' : 'text-slate/50'}`} />
-          {live === 'checking' ? t('twitch.checking') : isLive ? t('twitch.onAir') : t('twitch.offAir')}
+          <span aria-hidden="true" className={`led ${on ? 'led-blink text-red' : live === 'checking' ? 'text-gold' : 'text-slate/50'}`} />
+          {live === 'checking' ? t('twitch.checking') : on ? t('twitch.onAir') : t('twitch.offAir')}
         </span>
       </header>
 
-      <div className={`crt aspect-video ${isLive ? 'crt-live' : ''}`}>
-        <div ref={playerEl} className="absolute inset-0" />
+      <div className={`crt aspect-video ${on ? 'crt-live' : ''}`}>
+        {playing ? (
+          <iframe src={playerSrc()} title={t('twitch.channel')} allow="autoplay; fullscreen" allowFullScreen className="absolute inset-0 size-full" />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setPlaying(true)}
+            className="group absolute inset-0 flex items-center justify-center text-white focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-gold"
+          >
+            {on && <img src={links.twitch.preview} alt="" width={640} height={360} decoding="async" className="absolute inset-0 size-full object-cover" />}
+            {!on && <BrandIcon brand="twitch" className="absolute size-24 text-white/10" />}
+            <span className="btn relative bg-[#7b4fe0] text-white group-hover:bg-[#6a3fd0]">
+              <svg viewBox="0 0 24 24" className="size-4" fill="currentColor" aria-hidden="true">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              {on ? t('twitch.watch') : t('twitch.open')}
+            </span>
+          </button>
+        )}
       </div>
 
       <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-4">

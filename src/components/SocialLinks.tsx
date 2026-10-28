@@ -8,6 +8,7 @@ const socials: { brand: Brand; label: MessageKey; url: string; hover: string }[]
   { brand: 'github', label: 'links.github', url: links.github.url, hover: 'hover:border-ink hover:bg-ink' },
   { brand: 'x', label: 'links.x', url: links.x.url, hover: 'hover:border-ink hover:bg-ink' },
   { brand: 'instagram', label: 'links.instagram', url: links.instagram.url, hover: 'hover:border-magenta hover:bg-magenta' },
+  { brand: 'bluesky', label: 'links.bluesky', url: links.bluesky.url, hover: 'hover:border-cyan hover:bg-cyan' },
 ]
 
 /** Square icon links to every profile, used in the hero and the footer. */

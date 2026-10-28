@@ -14,7 +14,9 @@
   },
   "twitch": {
     "url": "https://www.twitch.tv/kabukiflux",
-    "login": "kabukiflux"
+    "login": "kabukiflux",
+    "player": "https://player.twitch.tv/",
+    "preview": "https://static-cdn.jtvnw.net/previews-ttv/live_user_kabukiflux-640x360.jpg"
   },
   "github": {
     "url": "https://github.com/KabukiFlux",
@@ -30,6 +32,11 @@
   "instagram": {
     "url": "https://www.instagram.com/kabukiflux/",
     "handle": "kabukiflux"
+  },
+  "bluesky": {
+    "url": "https://bsky.app/profile/kabukiflux.bsky.social",
+    "handle": "kabukiflux.bsky.social",
+    "api": "https://public.api.bsky.app/xrpc/"
   },
   "kofi": {
     "url": "https://ko-fi.com/kabukiflux"

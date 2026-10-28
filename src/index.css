@@ -162,7 +162,7 @@ body {
   }
 }
 
-/* Sections rise and fade in as they enter the viewport. */
+/* Sections rise as they enter the viewport. No fade: half-transparent text fails contrast checks. */
 @supports (animation-timeline: view()) {
   .reveal {
     animation: reveal linear both;
@@ -172,7 +172,6 @@ body {
 }
 @keyframes reveal {
   from {
-    opacity: 0;
     translate: 0 2.5rem;
   }
 }

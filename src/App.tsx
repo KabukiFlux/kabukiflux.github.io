@@ -1,13 +1,13 @@
+import { BlueskyFeed } from './components/BlueskyFeed.tsx'
 import { Footer } from './components/Footer.tsx'
 import { Header } from './components/Header.tsx'
 import { Hero } from './components/Hero.tsx'
 import { ProjectGrid } from './components/ProjectGrid.tsx'
 import { Section } from './components/Section.tsx'
-import { SocialFrame } from './components/SocialFrame.tsx'
+import { SocialBar, SocialFrame } from './components/SocialFrame.tsx'
 import { VideoPlayer } from './components/VideoPlayer.tsx'
 import { VideoSlider } from './components/VideoSlider.tsx'
 import { VideoCard } from './components/VideoCard.tsx'
-import { XTimeline } from './components/XTimeline.tsx'
 import links from './content/links.json'
 import { useFeed } from './hooks/useFeed.ts'
 import { useI18n } from './i18n/I18nProvider.tsx'
@@ -67,10 +67,12 @@ export default function App() {
               followLabel={t('instagram.follow')}
               height={EMBED_HEIGHT}
             />
-            <SocialFrame brand="x" title={t('x.title')} profileUrl={links.x.url} followLabel={t('x.follow')} height={EMBED_HEIGHT}>
-              {(inView) => <XTimeline load={inView} height={EMBED_HEIGHT} />}
+            <SocialFrame brand="bluesky" title={t('bluesky.title')} profileUrl={links.bluesky.url} followLabel={t('bluesky.follow')} height={EMBED_HEIGHT}>
+              {() => (state.status === 'loading' ? <div className="h-full animate-pulse bg-line" /> : <BlueskyFeed posts={feed?.bluesky ?? []} />)}
             </SocialFrame>
           </div>
+          {/* X's timeline embed is heavy and often refuses to render, so X gets just a follow bar */}
+          <SocialBar brand="x" title={t('x.title')} subtitle={t('x.handle')} profileUrl={links.x.url} followLabel={t('x.follow')} className="mt-8 bg-paper" />
         </Section>
       </main>
       <Footer generatedAt={feed?.generatedAt} />

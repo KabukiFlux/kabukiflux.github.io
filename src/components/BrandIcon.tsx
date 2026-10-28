@@ -1,6 +1,6 @@
-import { siGithub, siInstagram, siTwitch, siX, siYoutube } from 'simple-icons'
+import { siBluesky, siGithub, siInstagram, siTwitch, siX, siYoutube } from 'simple-icons'
 
-const icons = { youtube: siYoutube, twitch: siTwitch, github: siGithub, x: siX, instagram: siInstagram }
+const icons = { youtube: siYoutube, twitch: siTwitch, github: siGithub, x: siX, instagram: siInstagram, bluesky: siBluesky }
 
 export type Brand = keyof typeof icons
 
