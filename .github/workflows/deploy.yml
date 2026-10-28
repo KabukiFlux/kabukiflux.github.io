@@ -71,11 +71,14 @@ jobs:
       - id: deployment
         uses: actions/deploy-pages@v5
 
-  # GitHub disables scheduled workflows after 60 days without repo activity; this keeps the cron alive.
+  # GitHub disables scheduled workflows after 60 days without repo activity. Re-enabling the
+  # workflow through the API resets that timer, without third-party actions or dummy commits.
   keepalive:
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
     permissions:
       actions: write
     steps:
-      - uses: gautamkrishnar/keepalive-workflow@v2
+      - run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/deploy.yml/enable"
+        env:
+          GH_TOKEN: ${{ github.token }}
