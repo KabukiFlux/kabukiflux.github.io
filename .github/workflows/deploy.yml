@@ -36,6 +36,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Upload generated feed artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-feed-json
+          path: public/data/feed.json
+          if-no-files-found: error
+
       - name: Decide whether to deploy
         id: decide
         run: |
