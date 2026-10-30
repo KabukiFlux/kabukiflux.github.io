@@ -8,7 +8,9 @@
       "url": "https://www.youtube.com/c/KabukiFlux",
       "channelId": "UC7nzFigwUXignEdYdiT37_g"
     },
-    "excludeVideos": []
+    "excludeVideos": [
+      ""
+    ]
   },
   "twitch": {
     "url": "https://www.twitch.tv/kabukiflux",
